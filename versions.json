@@ -1,4 +1,4 @@
 {
-    "pihole": "latest",
+    "pihole": "2025.03.0",
     "dnsproxy": "v0.75.1"
   }
