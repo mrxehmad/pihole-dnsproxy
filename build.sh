@@ -5,7 +5,7 @@ PIHOLE_VERSION=$(jq -r '.pihole' versions.json)
 
 # Build and push for multiple architectures
 docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 \
-  --tag overkill5234/pihole-dnsproxy:$VERSION \
+  --tag xehmad/pihole-dnsproxy:$VERSION \
   --build-arg DNSPROXY_VERSION=$DNSPROXY_VERSION \
   --build-arg PIHOLE_VERSION=$PIHOLE_VERSION \
   --push .

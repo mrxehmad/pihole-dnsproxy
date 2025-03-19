@@ -49,7 +49,7 @@ docker run -d \
   -p 443:443/tcp -p 443:443/udp \
   -e FTLCONF_webserver_api_password="YourPassword" \
   -e FTLCONF_dns_upstreams="127.0.0.1#5053" \
-  overkill5234/pihole-dnsproxy:latest
+  xehmad/pihole-dnsproxy:latest
 ```
 
 > [!NOTE]  
@@ -93,13 +93,8 @@ When you push changes to `versions.json`, GitHub Actions will:
 - Create a new GitHub Release with the updated version.
 
 ## Docker Hub
-The built images are available on [Docker Hub](https://hub.docker.com/r/overkill5234/pihole-dnsproxy).
+The built images are available on [Docker Hub](https://hub.docker.com/r/xehmad/pihole-dnsproxy).
 
-## GitHub Actions Setup
-1. Generate a [Docker Hub Access Token](https://hub.docker.com/settings/security).
-2. Add these secrets to your GitHub repository:
-   - `DOCKERHUB_USERNAME`: Your Docker Hub username.
-   - `DOCKERHUB_TOKEN`: Your Docker Hub access token.
 
 ## License
 This project is licensed under the MIT License.
