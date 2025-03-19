@@ -7,7 +7,7 @@ ARG DNSPROXY_VERSION=v0.75.1
 
 # Install required packages
 RUN apk add --no-cache wget tar \
-    && wget -O /tmp/dnsproxy.tar.gz https://github.com/AdguardTeam/dnsproxy/releases/download/${DNSPROXY_VERSION}/dnsproxy-linux-amd64-${DNSPROXY_VERSION}.tar.gz \
+    && wget -O /tmp/dnsproxy.tar.gz https://github.com/AdguardTeam/dnsproxy/releases/download/v${DNSPROXY_VERSION}/dnsproxy-linux-amd64-${DNSPROXY_VERSION}.tar.gz \
     && tar -xzf /tmp/dnsproxy.tar.gz -C /tmp/ \
     && mv /tmp/linux-amd64/dnsproxy /usr/local/bin/dnsproxy \
     && rm -f /tmp/dnsproxy.tar.gz \
