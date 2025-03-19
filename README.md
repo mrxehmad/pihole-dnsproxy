@@ -1,7 +1,3 @@
-Here’s the updated `README.md` with added details about DNSProxy's support for **DoH (DNS-over-HTTPS)**, **DoT (DNS-over-TLS)**, **DNSCrypt**, and other advanced DNS protocols. I’ve also emphasized these features in the description and usage sections.
-
----
-
 # Docker Pi-hole with DNSProxy
 
 This project builds a custom Docker image that integrates [Pi-hole](https://pi-hole.net/) with [AdGuard DNSProxy](https://github.com/AdguardTeam/dnsProxy). It supports **multi-architecture builds** for **x86, x64, ARM64, and ARMv7**, and automatically updates based on version changes in `versions.json`.
