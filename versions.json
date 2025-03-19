@@ -1,0 +1,4 @@
+{
+    "pihole": "latest",
+    "dnsproxy": "v0.75.1"
+  }
