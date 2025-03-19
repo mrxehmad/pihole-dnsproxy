@@ -20,6 +20,7 @@ jobs:
 
       - name: Read Versions
         run: |
+          echo "IMAGE_VERSION=$(jq -r '.version' versions.json)" >> $GITHUB_ENV
           echo "DNSPROXY_VERSION=$(jq -r '.dnsproxy' versions.json)" >> $GITHUB_ENV
           echo "PIHOLE_VERSION=$(jq -r '.pihole' versions.json)" >> $GITHUB_ENV
 
@@ -41,6 +42,6 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "dnsproxy-${{ env.DNSPROXY_VERSION }}-pihole-${{ env.PIHOLE_VERSION }}"
-          name: "Release dnsproxy-${{ env.DNSPROXY_VERSION }} & pihole-${{ env.PIHOLE_VERSION }}"
+          tag_name: "v${{ env.IMAGE_VERSION }}"
+          name: "Release v${{ env.IMAGE_VERSION }}"
           body: "### Changes:\n- dnsproxy: v${{ env.DNSPROXY_VERSION }}\n- pihole: v${{ env.PIHOLE_VERSION }}"
