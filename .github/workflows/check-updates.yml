@@ -1,0 +1,55 @@
+name: Check for Upstream Updates
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-updates:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install jq & curl
+        run: sudo apt-get install -y jq curl
+
+      - name: Get current versions
+        id: current
+        run: |
+          echo "CURRENT_PIHOLE=$(jq -r .pihole versions.json)" >> $GITHUB_ENV
+          echo "CURRENT_DNSPROXY=$(jq -r .dnsproxy versions.json)" >> $GITHUB_ENV
+
+      - name: Get latest dnsproxy release
+        id: dnsproxy
+        run: |
+          LATEST_DNSPROXY=$(curl -s https://api.github.com/repos/AdguardTeam/dnsproxy/releases/latest | jq -r .tag_name)
+          echo "LATEST_DNSPROXY=$LATEST_DNSPROXY" >> $GITHUB_ENV
+
+      - name: Get latest Pi-hole release
+        id: pihole
+        run: |
+          # Grabs latest tag from core repo (alternatively use dockerhub tags if needed)
+          LATEST_PIHOLE=$(curl -s https://api.github.com/repos/pi-hole/docker-pi-hole/releases/latest | jq -r .tag_name)
+          echo "LATEST_PIHOLE=$LATEST_PIHOLE" >> $GITHUB_ENV
+
+      - name: Compare and Update versions.json if needed
+        run: |
+          CHANGED=0
+          jq ".dnsproxy = \"${LATEST_DNSPROXY}\" | .pihole = \"${LATEST_PIHOLE}\"" versions.json > versions.new.json
+          if ! cmp -s versions.json versions.new.json; then
+            mv versions.new.json versions.json
+            CHANGED=1
+          fi
+
+          if [ "$CHANGED" -eq 1 ]; then
+            git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
+            git config --global user.name "${{ secrets.GIT_USER_NAME }}"
+            git add versions.json
+            git commit -m "Auto update versions to dnsproxy ${LATEST_DNSPROXY} and pihole ${LATEST_PIHOLE}"
+            git push
+          else
+            echo "No updates."
+          fi
