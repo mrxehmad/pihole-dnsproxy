@@ -38,7 +38,6 @@ jobs:
           NEW_PIHOLE="$LATEST_PIHOLE"
           NEW_DNSPROXY="$LATEST_DNSPROXY"
 
-          # Build new JSON in a temp file
           jq --arg pihole "$NEW_PIHOLE" --arg dnsproxy "$NEW_DNSPROXY" \
             '.pihole = $pihole | .dnsproxy = $dnsproxy' versions.json > versions.new.json
 
@@ -57,11 +56,9 @@ jobs:
 
             NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
 
-            # Write updated content to new file
             jq --arg pihole "$NEW_PIHOLE" --arg dnsproxy "$NEW_DNSPROXY" --arg ver "$NEW_VERSION" \
               '.pihole = $pihole | .dnsproxy = $dnsproxy | .version = $ver' versions.json > versions.updated.json
 
-            # Double check it's not empty
             if [ ! -s versions.updated.json ]; then
               echo "Error: New versions file is empty. Aborting."
               exit 1
@@ -70,6 +67,17 @@ jobs:
             mv versions.updated.json versions.json
             echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
             echo "CHANGED=1" >> $GITHUB_ENV
+
+            git config --global user.name "${{ secrets.GIT_USER_NAME }}"
+            git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
+            git add versions.json
+            git commit -m "Auto update to dnsproxy $NEW_DNSPROXY and pihole $NEW_PIHOLE"
+            git push
+          else
+            echo "No version update"
+            echo "NEW_VERSION=$CUR_VERSION" >> $GITHUB_ENV
+            echo "CHANGED=0" >> $GITHUB_ENV
+
 
             git config --global user.name "${{ secrets.GIT_USER_NAME }}"
             git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
