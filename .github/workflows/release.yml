@@ -1,47 +1,108 @@
-name: Docker Build & Release
+name: Auto Update & Docker Build
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "versions.json"
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
 
 jobs:
-  build-and-release:
+  update-and-build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install jq
-        run: sudo apt-get install -y jq
+      - name: Install jq & curl
+        run: sudo apt-get install -y jq curl
 
-      - name: Read Versions
+      - name: Get current versions
+        id: current
         run: |
-          echo "IMAGE_VERSION=$(jq -r '.version' versions.json)" >> $GITHUB_ENV
-          echo "DNSPROXY_VERSION=$(jq -r '.dnsproxy' versions.json)" >> $GITHUB_ENV
-          echo "PIHOLE_VERSION=$(jq -r '.pihole' versions.json)" >> $GITHUB_ENV
+          echo "CUR_VER=$(jq -r .version versions.json)" >> $GITHUB_ENV
+          echo "CUR_PIHOLE=$(jq -r .pihole versions.json)" >> $GITHUB_ENV
+          echo "CUR_DNSPROXY=$(jq -r .dnsproxy versions.json)" >> $GITHUB_ENV
+
+      - name: Get latest releases
+        id: latest
+        run: |
+          LATEST_PIHOLE=$(curl -s https://api.github.com/repos/pi-hole/docker-pi-hole/releases/latest | jq -r .tag_name)
+          LATEST_DNSPROXY=$(curl -s https://api.github.com/repos/AdguardTeam/dnsproxy/releases/latest | jq -r .tag_name)
+          echo "LATEST_PIHOLE=$LATEST_PIHOLE" >> $GITHUB_ENV
+          echo "LATEST_DNSPROXY=$LATEST_DNSPROXY" >> $GITHUB_ENV
+
+      - name: Compare and update versions.json
+        id: update
+        run: |
+          CHANGED=0
+          NEW_PIHOLE=$LATEST_PIHOLE
+          NEW_DNSPROXY=$LATEST_DNSPROXY
+
+          jq --arg pihole "$NEW_PIHOLE" --arg dnsproxy "$NEW_DNSPROXY" \
+            '.pihole = $pihole | .dnsproxy = $dnsproxy' versions.json > versions.new.json
+
+          if ! cmp -s versions.json versions.new.json; then
+            # Bump version
+            CUR_VERSION=$(jq -r .version versions.json)
+            MAJOR=$(echo $CUR_VERSION | cut -d. -f1)
+            MINOR=$(echo $CUR_VERSION | cut -d. -f2)
+            PATCH=$(echo $CUR_VERSION | cut -d. -f3)
+
+            if [ "$PATCH" -lt 9 ]; then
+              PATCH=$((PATCH + 1))
+            else
+              PATCH=0
+              MINOR=$((MINOR + 1))
+            fi
+
+            NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+
+            jq --arg pihole "$NEW_PIHOLE" --arg dnsproxy "$NEW_DNSPROXY" --arg ver "$NEW_VERSION" \
+              '.pihole = $pihole | .dnsproxy = $dnsproxy | .version = $ver' versions.json > versions.json
+
+            echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+            CHANGED=1
+
+            git config --global user.name "${{ secrets.GIT_USER_NAME }}"
+            git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
+            git add versions.json
+            git commit -m "Auto update to dnsproxy $NEW_DNSPROXY and pihole $NEW_PIHOLE"
+            git push
+          else
+            echo "No version update"
+            echo "NEW_VERSION=${{ env.CUR_VER }}" >> $GITHUB_ENV
+          fi
+
+      - name: Exit if no version update
+        if: steps.update.outputs.CHANGED != '1'
+        run: echo "Skipping build — no version change"
 
       - name: Log in to Docker Hub
+        if: steps.update.outputs.CHANGED == '1'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Set up Docker Buildx
+        if: steps.update.outputs.CHANGED == '1'
         uses: docker/setup-buildx-action@v3
 
       - name: Set build.sh as executable
+        if: steps.update.outputs.CHANGED == '1'
         run: chmod +x build.sh
 
       - name: Build & Push Docker Image
+        if: steps.update.outputs.CHANGED == '1'
         run: ./build.sh
 
       - name: Create GitHub Release
+        if: steps.update.outputs.CHANGED == '1'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v${{ env.IMAGE_VERSION }}"
-          name: "Release v${{ env.IMAGE_VERSION }}"
-          body: "### Changes:\n- dnsproxy: ${{ env.DNSPROXY_VERSION }}\n- pihole: v${{ env.PIHOLE_VERSION }}"
+          tag_name: "v${{ env.NEW_VERSION }}"
+          name: "Release v${{ env.NEW_VERSION }}"
+          body: |
+            ### Changes:
+            - dnsproxy: ${{ env.LATEST_DNSPROXY }}
+            - pihole: ${{ env.LATEST_PIHOLE }}
