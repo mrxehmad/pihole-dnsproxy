@@ -2,7 +2,7 @@ name: Auto Update & Docker Build
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # Every day at 6 AM UTC
+    - cron: '0 6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -43,9 +43,9 @@ jobs:
 
           if ! cmp -s versions.json versions.new.json; then
             CUR_VERSION=$(jq -r .version versions.json)
-            MAJOR=$(echo $CUR_VERSION | cut -d. -f1)
-            MINOR=$(echo $CUR_VERSION | cut -d. -f2)
-            PATCH=$(echo $CUR_VERSION | cut -d. -f3)
+            MAJOR=$(echo "$CUR_VERSION" | cut -d. -f1)
+            MINOR=$(echo "$CUR_VERSION" | cut -d. -f2)
+            PATCH=$(echo "$CUR_VERSION" | cut -d. -f3)
 
             if [ "$PATCH" -lt 9 ]; then
               PATCH=$((PATCH + 1))
@@ -59,12 +59,8 @@ jobs:
             jq --arg pihole "$NEW_PIHOLE" --arg dnsproxy "$NEW_DNSPROXY" --arg ver "$NEW_VERSION" \
               '.pihole = $pihole | .dnsproxy = $dnsproxy | .version = $ver' versions.json > versions.updated.json
 
-            if [ ! -s versions.updated.json ]; then
-              echo "Error: New versions file is empty. Aborting."
-              exit 1
-            fi
-
             mv versions.updated.json versions.json
+
             echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
             echo "CHANGED=1" >> $GITHUB_ENV
 
@@ -74,22 +70,11 @@ jobs:
             git commit -m "Auto update to dnsproxy $NEW_DNSPROXY and pihole $NEW_PIHOLE"
             git push
           else
-            echo "No version update"
             echo "NEW_VERSION=$CUR_VERSION" >> $GITHUB_ENV
             echo "CHANGED=0" >> $GITHUB_ENV
+          fi
 
-
-            git config --global user.name "${{ secrets.GIT_USER_NAME }}"
-            git config --global user.email "${{ secrets.GIT_USER_EMAIL }}"
-            git add versions.json
-            git commit -m "Auto update to dnsproxy $NEW_DNSPROXY and pihole $NEW_PIHOLE"
-            git push
-          else
-            echo "No version update"
-            echo "NEW_VERSION=$CUR_VER" >> $GITHUB_ENV
-            echo "CHANGED=0" >> $GITHUB_ENV
-
-      - name: Skip if no changes
+      - name: Exit if no version update
         if: env.CHANGED == '0'
         run: echo "Skipping build — no version change"
 
@@ -104,7 +89,7 @@ jobs:
         if: env.CHANGED == '1'
         uses: docker/setup-buildx-action@v3
 
-      - name: Make build.sh executable
+      - name: Set build.sh as executable
         if: env.CHANGED == '1'
         run: chmod +x build.sh
 
