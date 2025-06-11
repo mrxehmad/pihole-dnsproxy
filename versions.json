@@ -1,5 +1,5 @@
 {
-  "version": "1.5.1",
-  "dnsproxy": "v0.75.5",
+  "version": "1.5.2",
+  "dnsproxy": "v0.75.6",
   "pihole": "2025.06.1"
 }
