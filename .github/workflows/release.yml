@@ -2,7 +2,7 @@ name: Auto Update & Docker Build
 
 on:
   schedule:
-    - cron: '0 6 * * 0,3,5'
+    - cron: '0 6 * * 0'
   workflow_dispatch:
 
 jobs:
@@ -107,3 +107,4 @@ jobs:
             ### Changes:
             - dnsproxy: ${{ env.LATEST_DNSPROXY }}
             - pihole: ${{ env.LATEST_PIHOLE }}
+
